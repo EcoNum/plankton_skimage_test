@@ -69,5 +69,47 @@ zooscan_all <- shapeVars(zooscan_all, zooscan_ref[1:3, ])
 
 # What does it give?
 library(chart)
-chart(zooscan_all, Acantharea_like ~ Actinopterygii_like %col=% taxon) +
-  geom_point()
+zooscan_all %>.%
+  group_by(., taxon) %>.%
+  sample_n(., 100, replace =  TRUE) -> zooscan_all50
+#zooscan_all50$taxon[!zooscan_all50$taxon %in% c("Acantharea", "Acartiidae", "Actinopterygii")] <- "other"
+zooscan_all50 <- zooscan_all50[nrow(zooscan_all50):1, ]
+zooscan_all50$objid <- NULL
+zooscan_all50$taxon <- as.factor(zooscan_all50$taxon)
+table(zooscan_all50$taxon)
+
+# Note: these charts take too long to construct!!!
+#chart(zooscan_all50, Acantharea_like ~ Actinopterygii_like %col=% taxon) +
+#  geom_point()
+
+#chart(zooscan_all50, Acartiidae_like ~ Actinopterygii_like %col=% taxon) +
+#  geom_point()
+
+#chart(zooscan_all50, log(area) ~ Actinopterygii_like %col=% taxon) +
+#  geom_point()
+
+library(randomForest)
+rf <- randomForest(taxon ~ ., data = zooscan_all50, importance = TRUE)
+rf
+varImpPlot(rf)
+# Conclusion: area is by far the most discriminant variable!
+
+zooscan_all50$area <- NULL
+rf <- randomForest(taxon ~ ., data = zooscan_all50, importance = TRUE)
+rf
+varImpPlot(rf)
+# Now, without area, error rate is even larger... and Acantharea, Acartiidae,
+# and Actinopterygii are not very well classified >80% error!
+
+# A final comparison with only Hu moments
+zooscan_all50$Acantharea_like <- NULL
+zooscan_all50$Acartiidae_like <- NULL
+zooscan_all50$Actinopterygii_like <- NULL
+rf <- randomForest(taxon ~ ., data = zooscan_all50, importance = TRUE)
+rf
+varImpPlot(rf)
+
+# Error rate is about the same, including for our 3 target classes => useless!
+
+
+
